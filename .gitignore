@@ -1,0 +1,41 @@
+# ---- build output ----------------------------------------------------------
+target/
+build/
+dist/
+node_modules/
+*.jar
+*.war
+
+# ---- secrets & local config ------------------------------------------------
+# application.yml ships a clearly-labelled DEMO jwt secret for one-command local
+# startup. Any real deployment must supply it via env var / secrets manager.
+.env
+.env.*
+!.env.example
+*.local
+application-local.yml
+application-secrets.yml
+
+# ---- logs ------------------------------------------------------------------
+*.log
+logs/
+npm-debug.log*
+yarn-error.log*
+
+# ---- IDE / editor ----------------------------------------------------------
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# ---- OS --------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- tooling ---------------------------------------------------------------
+.mvn/wrapper/maven-wrapper.jar
+*.tsbuildinfo
+.eslintcache
