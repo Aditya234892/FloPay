@@ -1,0 +1,9 @@
+{
+  "name": "@flopay/api-types",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Wire types shared between every FloPay client — the merchant/admin web app and the consumer wallet app both talk to the same backend and must never drift on request/response shapes.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts"
+}

@@ -1,4 +1,11 @@
-/** Wire types for the FloPay API. Mirrors the backend DTOs exactly. */
+/**
+ * Wire types for the FloPay gateway API. Shared between every client —
+ * gateway-web (merchant/admin) and consumer-app (wallet) both talk to this
+ * backend and must never drift on request/response shapes.
+ *
+ * Ledger/wallet types (Account, JournalEntry, WalletBalance, ...) land here
+ * once the ledger backend exists.
+ */
 
 export type OrderStatus = 'CREATED' | 'ATTEMPTED' | 'PAID'
 export type PaymentMethod = 'CARD' | 'UPI' | 'NETBANKING'

@@ -39,3 +39,6 @@ desktop.ini
 .mvn/wrapper/maven-wrapper.jar
 *.tsbuildinfo
 .eslintcache
+
+.vercel
+.env*

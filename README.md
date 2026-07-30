@@ -105,7 +105,8 @@ therefore untrusted, so the merchant's server independently confirms that the
 
 ## Running it
 
-**Prerequisites:** JDK 17–21 and Node 20+.
+**Prerequisites:** JDK 17–21, Node 20+, and [pnpm](https://pnpm.io) (this is a pnpm workspace —
+`apps/gateway-web` plus any shared `packages/*` install together from the repo root).
 
 > ⚠️ Lombok's annotation processor does not yet support JDK 26 internals. If your default
 > `JAVA_HOME` points at a newer JDK, the build fails with
@@ -115,18 +116,19 @@ therefore untrusted, so the merchant's server independently confirms that the
 **Backend** (http://localhost:8080):
 
 ```bash
-cd backend && ./mvnw spring-boot:run
+cd apps/gateway-api && ./mvnw spring-boot:run
 ```
 
-**Frontend** (http://localhost:5173):
+**Frontend** (http://localhost:5173) — from the repo root, so pnpm can resolve the workspace's
+shared packages:
 
 ```bash
-cd frontend && npm install && npm run dev
+pnpm install && pnpm dev:web
 ```
 
 The backend uses an in-memory H2 database, so state resets on every restart. Swap
-`spring.datasource.*` in `backend/src/main/resources/application.yml` for a Postgres URL to
-persist; the JPA mappings need no changes.
+`spring.datasource.*` in `apps/gateway-api/src/main/resources/application.yml` for a Postgres
+URL to persist; the JPA mappings need no changes.
 
 ### Demo walkthrough
 
@@ -329,7 +331,7 @@ the charting bundle.
 ### Backend architecture
 
 ```
-backend/src/main/java/com/flopay/
+apps/gateway-api/src/main/java/com/flopay/
   merchant/   Merchant + ApiKey entities, signup/login, key issuance & revocation
   order/      Order entity, creation and merchant-scoped reads
   payment/    Payment entity, TestCardSimulator, SignatureUtil (HMAC)
@@ -356,8 +358,13 @@ each other, so the order matters.
 
 Render reads [`render.yaml`](render.yaml) as a Blueprint. In the Render dashboard choose
 **New → Blueprint**, point it at this repository, and apply. It builds
-[`backend/Dockerfile`](backend/Dockerfile) (pinned to JDK 21 — Lombok cannot compile on 26)
-and health-checks `/health`.
+[`apps/gateway-api/Dockerfile`](apps/gateway-api/Dockerfile) (pinned to JDK 21 — Lombok cannot
+compile on 26) and health-checks `/health`.
+
+If the service already exists from before this repo became a monorepo, Render should pick up
+the new `dockerfilePath`/`dockerContext` in `render.yaml` on the next push automatically
+(Blueprint-linked services re-sync on `render.yaml` changes). If a deploy doesn't kick off
+within a few minutes of pushing, trigger **Manual Deploy → Sync Blueprint** from the dashboard.
 
 Then set these environment variables on the service:
 
@@ -369,9 +376,14 @@ Then set these environment variables on the service:
 
 ### 2. Frontend → Vercel
 
-Import the repo, set **Root Directory** to `frontend`. [`frontend/vercel.json`](frontend/vercel.json)
-supplies the build command, output directory, cache headers and — critically — the SPA
-rewrite, without which a direct load of `/dashboard` returns a CDN 404.
+Import the repo and leave **Root Directory** as the default (`.`, the repo root) — do not
+point it at `apps/gateway-web`. The root [`vercel.json`](vercel.json) is what makes this a
+working pnpm-workspace deploy: it runs `pnpm install` from the repo root (so the workspace
+dependency `@flopay/api-types` resolves — plain `npm install` scoped to just
+`apps/gateway-web` cannot follow pnpm's `workspace:*` protocol at all, which is exactly what
+broke the first attempt at this), builds with `pnpm --filter gateway-web build`, and serves
+`apps/gateway-web/dist`. It also carries the cache headers and the SPA rewrite, without which
+a direct load of `/dashboard` returns a CDN 404.
 
 Set one environment variable:
 

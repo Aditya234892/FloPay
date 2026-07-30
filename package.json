@@ -1,0 +1,17 @@
+{
+  "name": "flopay",
+  "private": true,
+  "description": "FloPay — payment orchestration platform, consumer wallet app, and merchant/admin web, sharing one ledger-backed API.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter gateway-web dev",
+    "build:web": "pnpm --filter gateway-web build",
+    "lint:web": "pnpm --filter gateway-web lint",
+    "typecheck:web": "pnpm --filter gateway-web exec tsc -b",
+    "dev:api": "cd apps/gateway-api && ./mvnw spring-boot:run",
+    "test:api": "cd apps/gateway-api && ./mvnw test"
+  },
+  "packageManager": "pnpm@10.5.2"
+}

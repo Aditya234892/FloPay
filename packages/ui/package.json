@@ -1,0 +1,6 @@
+{
+  "name": "@flopay/ui",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Shared design system — intentionally empty until consumer-app exists. See README.md before adding anything here."
+}
