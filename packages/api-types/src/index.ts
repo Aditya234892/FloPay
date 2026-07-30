@@ -127,6 +127,58 @@ export function isSuccessfulPayment(status: PaymentStatus): boolean {
   return status === 'CAPTURED' || status === 'REFUNDED' || status === 'PARTIALLY_REFUNDED'
 }
 
+/* ===========================================================================
+   Consumer wallet app (apps/consumer-app) — phone+OTP auth is a separate
+   principal type from the merchant AuthResponse above (see backend
+   PrincipalType), hence WalletAuthResponse rather than a shared name.
+   =========================================================================== */
+
+export interface OtpRequestRequest {
+  phone: string
+}
+
+/**
+ * sandboxOtp exists only because no SMS provider is wired up. A real
+ * deployment sends this by SMS and never returns it from the API — the field
+ * name says so explicitly rather than reading as normal production shape.
+ */
+export interface OtpRequestResponse {
+  phone: string
+  sandboxOtp: string
+  expiresInSeconds: number
+}
+
+export interface OtpVerifyRequest {
+  phone: string
+  otp: string
+}
+
+export interface WalletAuthResponse {
+  token: string
+  userId: number
+  phone: string
+  vpa: string
+  displayName: string | null
+}
+
+export interface WalletResponse {
+  vpa: string
+  displayName: string | null
+  balanceMinor: number
+  currency: string
+}
+
+export type PostingDirection = 'DEBIT' | 'CREDIT'
+
+export interface WalletTransaction {
+  entryId: string
+  kind: string
+  direction: PostingDirection
+  amountMinor: number
+  referenceId: string | null
+  createdAt: string
+}
+
 export function isRefundable(payment: PaymentWithRefunds): boolean {
   return (
     (payment.status === 'CAPTURED' || payment.status === 'PARTIALLY_REFUNDED') &&

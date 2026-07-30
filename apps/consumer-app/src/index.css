@@ -1,0 +1,114 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   FloPay Wallet — mobile-first tokens.
+   Same brand ramp as gateway-web (blue -> violet -> emerald) for cross-app
+   recognizability, but flatter and higher-contrast: a wallet app is read at
+   arm's length in daylight, so heavy glassmorphism/blur (right for a desktop
+   dashboard) is wrong here — solid surfaces, bigger type, bigger tap targets.
+   ========================================================================== */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --brand-500: #3b82f6;
+  --brand-600: #2563eb;
+  --violet-500: #8b5cf6;
+  --accent-500: #10b981;
+  --accent-600: #059669;
+  --rose-500: #f43f5e;
+  --amber-500: #f59e0b;
+
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --line: rgb(15 23 42 / 0.08);
+  --fg: #0b1220;
+  --fg-muted: #5b6478;
+  --fg-subtle: #8791a3;
+
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #070b16;
+  --surface: #0e1526;
+  --surface-raised: #131b30;
+  --line: rgb(148 163 184 / 0.12);
+  --fg: #f1f4fb;
+  --fg-muted: #97a1b8;
+  --fg-subtle: #6b7690;
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-violet-500: var(--violet-500);
+  --color-accent-500: var(--accent-500);
+  --color-accent-600: var(--accent-600);
+  --color-rose-500: var(--rose-500);
+  --color-amber-500: var(--amber-500);
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Manrope', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer utilities {
+  /*
+   * Constrains the app to a phone-like column even on a wide desktop
+   * viewport, so it reads as "an app" rather than a stretched website — the
+   * same trick every PWA wallet uses when opened in a browser.
+   */
+  .phone-shell {
+    max-width: 26rem;
+    margin-inline: auto;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .tap-target {
+    min-height: 3rem;
+  }
+}

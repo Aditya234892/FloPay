@@ -1,0 +1,23 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+
+.vercel
+
+# See apps/gateway-web/.gitignore for why .env.production is excepted —
+# same reasoning applies once this app is deployed.
+.env*
+!.env.example
+!.env.production
