@@ -70,7 +70,14 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /** Dashboard + auth API: public signup/login, everything else requires a JWT. */
+    /**
+     * Everything not matched by the payment API chain: merchant dashboard JWT
+     * sessions and consumer wallet JWT sessions both land here, since
+     * {@link JwtAuthFilter} is generic over principal type — the OTP request/
+     * verify endpoints are public (a phone number isn't authenticated yet),
+     * everything else requires a JWT, and {@code SecurityUtils} enforces which
+     * type of JWT each controller actually accepts.
+     */
     @Bean
     @Order(2)
     public SecurityFilterChain dashboardFilterChain(HttpSecurity http, JwtService jwtService) throws Exception {
@@ -78,7 +85,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/api/auth/**", "/health").permitAll();
+                    auth.requestMatchers("/api/auth/**", "/api/wallet/auth/**", "/health").permitAll();
                     // Only routable in dev. Leaving this permitAll in a deployed
                     // service hands anyone a full SQL console over the database.
                     if (devProfile) {

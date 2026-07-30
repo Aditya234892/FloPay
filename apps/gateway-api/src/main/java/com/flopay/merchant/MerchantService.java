@@ -47,7 +47,7 @@ public class MerchantService {
     }
 
     private AuthResponse toAuthResponse(Merchant merchant) {
-        String token = jwtService.generateToken(merchant.getId(), merchant.getEmail());
+        String token = jwtService.generateMerchantToken(merchant.getId(), merchant.getEmail());
         return new AuthResponse(token, merchant.getId(), merchant.getName(), merchant.getEmail());
     }
 }
