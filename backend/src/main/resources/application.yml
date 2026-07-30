@@ -1,18 +1,25 @@
 server:
-  port: 8080
+  # Render (and most PaaS) inject the port to bind. Fall back to 8080 locally.
+  port: ${PORT:8080}
+  forward-headers-strategy: framework
 
 spring:
   application:
     name: flopay-backend
+  profiles:
+    # `dev` enables the H2 console and permits the local Vite origin.
+    # Deployments must override this (SPRING_PROFILES_ACTIVE=prod).
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   datasource:
-    url: jdbc:h2:mem:flopay;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: ${DATABASE_URL:jdbc:h2:mem:flopay;DB_CLOSE_DELAY=-1}
+    driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
+    username: ${DATABASE_USERNAME:sa}
+    password: ${DATABASE_PASSWORD:}
   h2:
     console:
-      enabled: true
-      path: /h2-console
+      # Off by default. A database console reachable from the internet is a full
+      # data breach, so it is switched on only by the dev profile below.
+      enabled: false
   jpa:
     hibernate:
       ddl-auto: update
@@ -21,10 +28,25 @@ spring:
 
 flopay:
   jwt:
-    # Demo-only secret. In a real deployment this comes from an env var / secrets manager.
-    secret: "flopay-dev-jwt-signing-secret-change-me-please-32bytes+"
-    expiry-minutes: 120
+    # This repository is public, so the real secret can never live here.
+    # Deployments must set FLOPAY_JWT_SECRET — JwtService refuses to start on
+    # this dev default unless the dev profile is active.
+    secret: ${FLOPAY_JWT_SECRET:dev-only-insecure-jwt-secret-never-deploy-this-32bytes+}
+    expiry-minutes: ${FLOPAY_JWT_EXPIRY_MINUTES:120}
+  cors:
+    # Comma-separated origin patterns allowed to call the API.
+    allowed-origins: ${FLOPAY_ALLOWED_ORIGINS:http://localhost:*}
 
 logging:
   level:
     com.flopay: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  h2:
+    console:
+      enabled: true
+      path: /h2-console

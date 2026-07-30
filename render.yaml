@@ -1,0 +1,35 @@
+# Render Blueprint — deploys the FloPay backend as a Docker web service.
+#
+# The frontend is NOT here; it deploys to Vercel (see frontend/vercel.json).
+#
+# After the first deploy you must set two values in the Render dashboard:
+#   FLOPAY_JWT_SECRET     generated for you below, but verify it exists
+#   FLOPAY_ALLOWED_ORIGINS  your Vercel URL — the API rejects unlisted origins
+services:
+  - type: web
+    name: flopay-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: singapore
+    healthCheckPath: /health
+    envVars:
+      # Disables the H2 console and enforces the real JWT secret. Do not set this
+      # to "dev" on a public host.
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+
+      # Render generates a random value and keeps it out of the repo. The service
+      # refuses to start without a non-default secret.
+      - key: FLOPAY_JWT_SECRET
+        generateValue: true
+
+      # Comma-separated origin patterns. Replace with your deployed frontend, e.g.
+      #   https://flopay.vercel.app,https://flopay-*.vercel.app
+      # The wildcard entry covers Vercel preview deployments.
+      - key: FLOPAY_ALLOWED_ORIGINS
+        sync: false
+
+      - key: FLOPAY_JWT_EXPIRY_MINUTES
+        value: "120"

@@ -347,6 +347,60 @@ session.
 
 ---
 
+## Deploying
+
+Frontend on Vercel, backend on Render as a Docker service. The two must know about
+each other, so the order matters.
+
+### 1. Backend → Render
+
+Render reads [`render.yaml`](render.yaml) as a Blueprint. In the Render dashboard choose
+**New → Blueprint**, point it at this repository, and apply. It builds
+[`backend/Dockerfile`](backend/Dockerfile) (pinned to JDK 21 — Lombok cannot compile on 26)
+and health-checks `/health`.
+
+Then set these environment variables on the service:
+
+| Variable | Value | Why |
+| --- | --- | --- |
+| `SPRING_PROFILES_ACTIVE` | `prod` | Disables the H2 console and enforces the secret check |
+| `FLOPAY_JWT_SECRET` | a private random string ≥32 bytes | `render.yaml` generates one; the app refuses to boot without it |
+| `FLOPAY_ALLOWED_ORIGINS` | your Vercel URLs (step 3) | Any origin not listed is rejected at the preflight |
+
+### 2. Frontend → Vercel
+
+Import the repo, set **Root Directory** to `frontend`. [`frontend/vercel.json`](frontend/vercel.json)
+supplies the build command, output directory, cache headers and — critically — the SPA
+rewrite, without which a direct load of `/dashboard` returns a CDN 404.
+
+Set one environment variable:
+
+| Variable | Value |
+| --- | --- |
+| `VITE_API_BASE_URL` | `https://<your-render-service>.onrender.com` |
+
+Vite inlines this **at build time**, so changing it requires a redeploy, not just a restart.
+
+### 3. Close the loop
+
+Set `FLOPAY_ALLOWED_ORIGINS` on Render to your deployed frontend, comma-separated. Include a
+wildcard for Vercel's per-branch preview URLs:
+
+```
+https://flopay.vercel.app,https://flopay-*.vercel.app
+```
+
+### What the free tiers mean for a demo
+
+Render's free instances sleep after inactivity, and the database is **in-memory H2** — so a
+cold start both takes ~30s and wipes every merchant, key and payment. The demo flow is
+self-contained (sign up → issue keys → pay → inspect dashboard), so a single visit works
+fine; a link you expect people to return to needs a real database. Point `DATABASE_URL`,
+`DATABASE_DRIVER`, `DATABASE_USERNAME` and `DATABASE_PASSWORD` at Postgres and add the
+driver to `pom.xml` — the JPA mappings need no changes.
+
+---
+
 ## Deliberate simplifications
 
 Called out so they read as decisions rather than oversights:

@@ -5,9 +5,11 @@ import com.flopay.security.ApiKeyAuthFilter;
 import com.flopay.security.JsonAuthenticationEntryPoint;
 import com.flopay.security.JwtAuthFilter;
 import com.flopay.security.JwtService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -19,10 +21,29 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
 public class SecurityConfig {
+
+    /** Comma-separated origin patterns permitted to call the API. */
+    private final List<String> allowedOrigins;
+
+    /** The H2 console is only ever routable under the dev profile. */
+    private final boolean devProfile;
+
+    public SecurityConfig(
+            @Value("${flopay.cors.allowed-origins}") String allowedOrigins,
+            Environment environment
+    ) {
+        this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList();
+        this.devProfile = environment.matchesProfiles("dev");
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -56,9 +77,15 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/h2-console/**").permitAll()
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers("/api/auth/**", "/health").permitAll();
+                    // Only routable in dev. Leaving this permitAll in a deployed
+                    // service hands anyone a full SQL console over the database.
+                    if (devProfile) {
+                        auth.requestMatchers("/h2-console/**").permitAll();
+                    }
+                    auth.anyRequest().authenticated();
+                })
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new JsonAuthenticationEntryPoint(
                         "Missing or expired session. Log in again.")))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
@@ -69,10 +96,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("http://localhost:*"));
+        // Patterns rather than exact origins so Vercel preview deployments
+        // (flopay-*.vercel.app) work without redeploying the backend per branch.
+        config.setAllowedOriginPatterns(new ArrayList<>(allowedOrigins));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
