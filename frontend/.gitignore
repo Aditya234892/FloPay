@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.vercel
+
+# Added by `vercel link`. Kept, but with two exceptions: the API base URL is not
+# a secret, and it must be in the repo — Vite inlines it at build time, so a
+# Git-triggered Vercel build without .env.production would silently ship a
+# bundle pointing at http://localhost:8080.
+.env*
+!.env.example
+!.env.production
