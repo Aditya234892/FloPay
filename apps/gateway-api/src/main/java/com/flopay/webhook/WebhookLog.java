@@ -29,8 +29,13 @@ public class WebhookLog {
     @Column(nullable = false)
     private WebhookEventType eventType;
 
-    @Lob
-    @Column(nullable = false)
+    /**
+     * Plain TEXT, not @Lob: Hibernate 6 on PostgreSQL maps a bare `@Lob String`
+     * to `oid` (large-object) rather than `text` depending on dialect version —
+     * ambiguous enough that a schema-validation tool would rather fail loudly
+     * than guess. This column only ever holds a JSON event body.
+     */
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String payload;
 
     @Builder.Default

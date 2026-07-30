@@ -7,24 +7,36 @@ spring:
   application:
     name: flopay-backend
   profiles:
-    # `dev` enables the H2 console and permits the local Vite origin.
-    # Deployments must override this (SPRING_PROFILES_ACTIVE=prod).
+    # `dev` permits the local Vite origin. Deployments must override this
+    # (SPRING_PROFILES_ACTIVE=prod).
     active: ${SPRING_PROFILES_ACTIVE:dev}
   datasource:
-    url: ${DATABASE_URL:jdbc:h2:mem:flopay;DB_CLOSE_DELAY=-1}
-    driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
-    username: ${DATABASE_USERNAME:sa}
+    # No default — deliberately. `${VAR:?message}` is bash syntax, not a
+    # Spring property placeholder; Spring has no "required" form, only
+    # `${key:default}` where everything after the colon is a literal default
+    # value. Leaving this genuinely unset means Spring's own placeholder
+    # resolution fails with "Could not resolve placeholder 'DATABASE_URL'",
+    # which at least names the missing variable. Point it at a real Postgres
+    # instance — the ledger needs Postgres's real row locking
+    # (SELECT ... FOR UPDATE) to prevent a wallet going negative under
+    # concurrent debits, and H2's semantics differ enough that "it passed
+    # locally" against H2 would not mean anything. A free Neon/Supabase
+    # project is enough for dev; see README.
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME:}
     password: ${DATABASE_PASSWORD:}
-  h2:
-    console:
-      # Off by default. A database console reachable from the internet is a full
-      # data breach, so it is switched on only by the dev profile below.
-      enabled: false
   jpa:
     hibernate:
-      ddl-auto: update
+      # Flyway owns every table. Hibernate is only allowed to check that the
+      # entities match what Flyway created — never to alter schema itself.
+      # For a ledger, an auto-migration silently widening or narrowing a
+      # column is not an acceptable way to find out about a mismatch.
+      ddl-auto: validate
     show-sql: false
     open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
 
 flopay:
   jwt:
@@ -40,13 +52,3 @@ flopay:
 logging:
   level:
     com.flopay: INFO
-
----
-spring:
-  config:
-    activate:
-      on-profile: dev
-  h2:
-    console:
-      enabled: true
-      path: /h2-console

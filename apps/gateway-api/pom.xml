@@ -9,10 +9,10 @@
 		<relativePath/>
 	</parent>
 	<groupId>com.flopay</groupId>
-	<artifactId>backend</artifactId>
+	<artifactId>gateway-api</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>FloPayBackend</name>
-	<description>Razorpay-style payment gateway simulator (backend)</description>
+	<name>FloPayGatewayApi</name>
+	<description>FloPay gateway + ledger API</description>
 
 	<properties>
 		<java.version>21</java.version>
@@ -38,9 +38,17 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
