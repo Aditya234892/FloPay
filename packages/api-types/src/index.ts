@@ -176,6 +176,32 @@ export interface WalletTransaction {
   direction: PostingDirection
   amountMinor: number
   referenceId: string | null
+  note: string | null
+  /** The other party's VPA — null for entries with no personal counterparty (e.g. a top-up). */
+  counterpartyVpa: string | null
+  counterpartyName: string | null
+  createdAt: string
+}
+
+export interface TopUpRequest {
+  amountMinor: number
+  idempotencyKey: string
+}
+
+export interface TransferRequest {
+  toVpa: string
+  amountMinor: number
+  note?: string
+  /** Generated once client-side and reused on retry — see backend TransferDtos for why. */
+  idempotencyKey: string
+}
+
+export interface TransferResponse {
+  entryId: string
+  toVpa: string
+  toName: string | null
+  amountMinor: number
+  note: string | null
   createdAt: string
 }
 

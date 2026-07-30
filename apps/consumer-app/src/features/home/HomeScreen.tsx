@@ -1,17 +1,31 @@
 import { motion } from 'framer-motion'
-import { ArrowDownLeft, ArrowUpRight, Copy, LogOut, Receipt } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, Copy, LogOut, Plus, Receipt, Send } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { FloMark } from '@/components/FloMark'
+import { Button } from '@/components/Button'
 import { useAuth } from '@/auth/AuthContext'
 import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { walletDataApi } from '@/api/endpoints'
+import { extractErrorMessage } from '@/api/client'
 import { formatMoney, formatRelative } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { WalletTransaction } from '@flopay/api-types'
 
+/** Demo top-up amount — one tap, no amount picker, since this is scaffolding for testing. */
+const TOPUP_AMOUNT_MINOR = 100_000
+
 function humanizeKind(kind: string): string {
   const lower = kind.toLowerCase().replace(/_/g, ' ')
   return lower.charAt(0).toUpperCase() + lower.slice(1)
+}
+
+/**
+ * A transfer's most useful label is who it was with; a top-up has no personal
+ * counterparty, so it falls back to the entry kind.
+ */
+function transactionLabel(tx: WalletTransaction): string {
+  return tx.counterpartyName ?? tx.counterpartyVpa ?? humanizeKind(tx.kind)
 }
 
 function TransactionRow({ tx, currency }: { tx: WalletTransaction; currency: string }) {
@@ -27,8 +41,10 @@ function TransactionRow({ tx, currency }: { tx: WalletTransaction; currency: str
         {isCredit ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-fg">{humanizeKind(tx.kind)}</p>
-        <p className="text-xs text-fg-subtle">{formatRelative(tx.createdAt)}</p>
+        <p className="truncate text-sm font-medium text-fg">{transactionLabel(tx)}</p>
+        <p className="truncate text-xs text-fg-subtle">
+          {tx.note ? tx.note : formatRelative(tx.createdAt)}
+        </p>
       </div>
       <p className={cn('shrink-0 text-sm font-semibold tabular-nums', isCredit ? 'text-accent-600' : 'text-fg')}>
         {isCredit ? '+' : '−'}
@@ -40,9 +56,12 @@ function TransactionRow({ tx, currency }: { tx: WalletTransaction; currency: str
 
 export function HomeScreen() {
   const { session, logout } = useAuth()
+  const navigate = useNavigate()
   const wallet = useAsyncResource(walletDataApi.getWallet, [])
   const transactions = useAsyncResource(walletDataApi.getTransactions, [])
   const [copied, setCopied] = useState(false)
+  const [toppingUp, setToppingUp] = useState(false)
+  const [topUpError, setTopUpError] = useState<string | null>(null)
 
   const handleCopyVpa = async () => {
     if (!session) return
@@ -52,8 +71,20 @@ export function HomeScreen() {
       setTimeout(() => setCopied(false), 1500)
     } catch {
       // Clipboard can be blocked (permissions, insecure context) — the VPA is
-      // still visible on screen, so this isn't a broken flow, just a missed
-      // convenience.
+      // still visible on screen, so this isn't a broken flow.
+    }
+  }
+
+  const handleTopUp = async () => {
+    setToppingUp(true)
+    setTopUpError(null)
+    try {
+      await walletDataApi.topUp(TOPUP_AMOUNT_MINOR)
+      await Promise.all([wallet.refetch(), transactions.refetch()])
+    } catch (err) {
+      setTopUpError(extractErrorMessage(err))
+    } finally {
+      setToppingUp(false)
     }
   }
 
@@ -102,6 +133,25 @@ export function HomeScreen() {
         </button>
       </motion.div>
 
+      <div className="mt-5 flex gap-3 px-5">
+        <Button onClick={() => navigate('/send')}>
+          <Send className="h-4 w-4" />
+          Send
+        </Button>
+        <Button variant="ghost" onClick={handleTopUp} loading={toppingUp} className="border border-line">
+          {!toppingUp && <Plus className="h-4 w-4" />}
+          Add money
+        </Button>
+      </div>
+      {topUpError && (
+        <p role="alert" className="mt-2 px-5 text-sm font-medium text-rose-500">
+          {topUpError}
+        </p>
+      )}
+      <p className="mt-2 px-5 text-center text-[0.6875rem] text-fg-subtle">
+        Demo mode — "Add money" mints sandbox funds. No real money exists here.
+      </p>
+
       <div className="mt-6 flex-1 px-5 pb-8">
         <h2 className="mb-2 text-sm font-semibold text-fg">Activity</h2>
 
@@ -123,10 +173,7 @@ export function HomeScreen() {
           <div className="flex flex-col items-center gap-2 rounded-2xl bg-surface-raised px-6 py-12 text-center shadow-sm">
             <Receipt className="h-8 w-8 text-fg-subtle" />
             <p className="text-sm font-medium text-fg">No activity yet</p>
-            <p className="text-xs text-fg-subtle">
-              Sending and receiving money isn't built yet — this screen already shows real data
-              from your account once it exists.
-            </p>
+            <p className="text-xs text-fg-subtle">Add some demo money, then send it to another FloPay VPA.</p>
           </div>
         )}
       </div>
