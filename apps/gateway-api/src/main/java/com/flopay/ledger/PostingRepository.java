@@ -11,4 +11,7 @@ public interface PostingRepository extends JpaRepository<Posting, Long> {
 
     /** Most recent postings against one account, newest first — a plain history view, not paginated yet. */
     List<Posting> findTop50ByAccountIdOrderByIdDesc(Long accountId);
+
+    /** Every posting against an account, uncapped — for cleanup/statement-export use, not the home feed. */
+    List<Posting> findByAccountId(Long accountId);
 }

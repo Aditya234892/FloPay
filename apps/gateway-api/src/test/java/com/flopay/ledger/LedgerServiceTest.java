@@ -85,7 +85,7 @@ class LedgerServiceTest {
     @Test
     void balancedEntryUpdatesBothAccountBalances() {
         JournalEntry entry = ledgerService.post(
-                "test-topup-" + testOwnerId, "TOPUP", null,
+                "test-topup-" + testOwnerId, "TOPUP", null, null,
                 List.of(PostingLine.debit(issuance.getId(), 50_000), PostingLine.credit(wallet.getId(), 50_000)));
 
         assertNotNull(entry.getId());
@@ -100,8 +100,8 @@ class LedgerServiceTest {
         List<PostingLine> lines = List.of(
                 PostingLine.debit(issuance.getId(), 10_000), PostingLine.credit(wallet.getId(), 10_000));
 
-        JournalEntry first = ledgerService.post(key, "TOPUP", null, lines);
-        JournalEntry second = ledgerService.post(key, "TOPUP", null, lines);
+        JournalEntry first = ledgerService.post(key, "TOPUP", null, null, lines);
+        JournalEntry second = ledgerService.post(key, "TOPUP", null, null, lines);
 
         assertEquals(first.getId(), second.getId(), "replay must return the original entry, not a new one");
 
@@ -112,7 +112,7 @@ class LedgerServiceTest {
     @Test
     void debitExceedingWalletBalanceIsRejectedAndLeavesBalanceUnchanged() {
         ApiException ex = assertThrows(ApiException.class, () -> ledgerService.post(
-                "test-overdraft-" + testOwnerId, "P2P_TRANSFER", null,
+                "test-overdraft-" + testOwnerId, "P2P_TRANSFER", null, null,
                 List.of(PostingLine.debit(wallet.getId(), 1_000), PostingLine.credit(issuance.getId(), 1_000))));
 
         assertTrue(ex.getMessage().contains("Insufficient balance"));
@@ -124,7 +124,7 @@ class LedgerServiceTest {
     @Test
     void unbalancedEntryIsRejectedByServiceBeforeTouchingTheDatabase() {
         ApiException ex = assertThrows(ApiException.class, () -> ledgerService.post(
-                "test-unbalanced-" + testOwnerId, "TOPUP", null,
+                "test-unbalanced-" + testOwnerId, "TOPUP", null, null,
                 List.of(PostingLine.debit(issuance.getId(), 5_000), PostingLine.credit(wallet.getId(), 4_000))));
 
         assertTrue(ex.getMessage().contains("not balanced"));
@@ -170,7 +170,7 @@ class LedgerServiceTest {
     @Test
     void concurrentDebitsCannotBothSuceedPastTheAvailableBalance() throws Exception {
         // Fund the wallet with exactly one debit's worth, not two.
-        ledgerService.post("test-concurrency-fund-" + testOwnerId, "TOPUP", null,
+        ledgerService.post("test-concurrency-fund-" + testOwnerId, "TOPUP", null, null,
                 List.of(PostingLine.debit(issuance.getId(), 1_000), PostingLine.credit(wallet.getId(), 1_000)));
 
         CyclicBarrier barrier = new CyclicBarrier(2);
@@ -183,7 +183,7 @@ class LedgerServiceTest {
             try {
                 ledgerService.post(
                         "test-concurrency-debit-" + testOwnerId + "-" + Thread.currentThread().threadId(),
-                        "P2P_TRANSFER", null,
+                        "P2P_TRANSFER", null, null,
                         List.of(PostingLine.debit(wallet.getId(), 1_000), PostingLine.credit(issuance.getId(), 1_000)));
                 succeeded.incrementAndGet();
             } catch (ApiException e) {

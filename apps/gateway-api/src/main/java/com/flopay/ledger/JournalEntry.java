@@ -50,6 +50,9 @@ public class JournalEntry {
     /** Loosely-typed pointer to whatever domain object drove this entry. */
     private String referenceId;
 
+    /** Optional user-supplied message — "for rent", a birthday note, etc. */
+    private String note;
+
     @Builder.Default
     @Column(nullable = false)
     private Instant createdAt = Instant.now();

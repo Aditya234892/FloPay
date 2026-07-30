@@ -32,10 +32,13 @@ public class LedgerService {
      *                       than posting a second time.
      * @param kind           free-text tag for reporting (e.g. "P2P_TRANSFER")
      * @param referenceId    id of whatever domain object drove this entry
+     * @param note           optional user-supplied message, or null
      * @param lines          two or more postings; must sum to zero
      */
     @Transactional
-    public JournalEntry post(String idempotencyKey, String kind, String referenceId, List<PostingLine> lines) {
+    public JournalEntry post(
+            String idempotencyKey, String kind, String referenceId, String note, List<PostingLine> lines
+    ) {
         var existing = journalEntryRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             return existing.get();
@@ -72,8 +75,12 @@ public class LedgerService {
             }
         }
 
-        JournalEntry entry = journalEntryRepository.save(
-                JournalEntry.builder().idempotencyKey(idempotencyKey).kind(kind).referenceId(referenceId).build());
+        JournalEntry entry = journalEntryRepository.save(JournalEntry.builder()
+                .idempotencyKey(idempotencyKey)
+                .kind(kind)
+                .referenceId(referenceId)
+                .note(note)
+                .build());
 
         for (PostingLine line : lines) {
             Account account = lockedAccounts.get(line.accountId());
