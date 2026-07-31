@@ -8,6 +8,7 @@ import { paymentLinksApi } from '@/api/endpoints'
 import { extractErrorMessage } from '@/api/client'
 import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { formatMoney } from '@/lib/format'
+import { randomId } from '@/lib/uuid'
 import type { TransferResponse } from '@flopay/api-types'
 
 export function PayViaLinkScreen() {
@@ -16,7 +17,7 @@ export function PayViaLinkScreen() {
   const preview = useAsyncResource(() => paymentLinksApi.preview(code!), [code])
 
   const [amount, setAmount] = useState('')
-  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID())
+  const [idempotencyKey, setIdempotencyKey] = useState(() => randomId())
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<TransferResponse | null>(null)
@@ -41,7 +42,7 @@ export function PayViaLinkScreen() {
       setResult(response)
     } catch (err) {
       setError(extractErrorMessage(err))
-      setIdempotencyKey(crypto.randomUUID())
+      setIdempotencyKey(randomId())
     } finally {
       setBusy(false)
     }
