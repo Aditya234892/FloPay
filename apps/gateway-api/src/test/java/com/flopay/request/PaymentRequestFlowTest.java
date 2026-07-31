@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flopay.consumer.OtpChallengeRepository;
 import com.flopay.consumer.UserRepository;
+import com.flopay.consumer.WalletService;
 import com.flopay.ledger.Account;
 import com.flopay.ledger.AccountKind;
 import com.flopay.ledger.AccountOwnerType;
@@ -46,6 +47,7 @@ class PaymentRequestFlowTest {
     @Autowired private PostingRepository postingRepository;
     @Autowired private JournalEntryRepository journalEntryRepository;
     @Autowired private PaymentRequestRepository paymentRequestRepository;
+    @Autowired private WalletService walletService;
 
     private final List<String> phones = new ArrayList<>();
 
@@ -99,12 +101,13 @@ class PaymentRequestFlowTest {
         return new Onboarded(auth.get("token").asText(), auth.get("userId").asLong(), auth.get("vpa").asText());
     }
 
-    private void topUp(String token, long amountMinor) throws Exception {
-        mockMvc.perform(post("/api/wallet/topup").header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                new TopUpBody(amountMinor, UUID.randomUUID().toString()))))
-                .andExpect(status().isOk());
+    /**
+     * There is no HTTP top-up endpoint anymore (Add Money now requires admin
+     * approval — see TopUpRequestController) — tests fund a wallet by calling
+     * the same crediting path the approval flow itself calls.
+     */
+    private void topUp(long userId, long amountMinor) {
+        walletService.topUp(userId, amountMinor, UUID.randomUUID().toString());
     }
 
     private long balanceOf(String token) throws Exception {
@@ -117,7 +120,7 @@ class PaymentRequestFlowTest {
     void approvingARequestMovesRealMoneyAndMarksItPaid() throws Exception {
         Onboarded requester = onboard();
         Onboarded payer = onboard();
-        topUp(payer.token(), 100_000);
+        topUp(payer.userId(), 100_000);
 
         String created = mockMvc.perform(post("/api/wallet/requests")
                         .header("Authorization", "Bearer " + requester.token())
@@ -163,7 +166,7 @@ class PaymentRequestFlowTest {
     void declinedRequestMovesNoMoney() throws Exception {
         Onboarded requester = onboard();
         Onboarded payer = onboard();
-        topUp(payer.token(), 50_000);
+        topUp(payer.userId(), 50_000);
 
         String created = mockMvc.perform(post("/api/wallet/requests")
                         .header("Authorization", "Bearer " + requester.token())
@@ -187,7 +190,7 @@ class PaymentRequestFlowTest {
         Onboarded requester = onboard();
         Onboarded payer = onboard();
         Onboarded stranger = onboard();
-        topUp(stranger.token(), 100_000);
+        topUp(stranger.userId(), 100_000);
 
         String created = mockMvc.perform(post("/api/wallet/requests")
                         .header("Authorization", "Bearer " + requester.token())
@@ -275,9 +278,6 @@ class PaymentRequestFlowTest {
     }
 
     private record VerifyBody(String phone, String otp) {
-    }
-
-    private record TopUpBody(long amountMinor, String idempotencyKey) {
     }
 
     private record CreateBody(String fromVpa, long amountMinor, String note) {

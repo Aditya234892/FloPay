@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface AccountRepository extends JpaRepository<Account, Long> {
@@ -26,4 +27,16 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     Optional<Account> findByOwnerTypeAndOwnerIdAndKindAndCurrency(
             AccountOwnerType ownerType, Long ownerId, AccountKind kind, String currency);
+
+    /**
+     * Every account kind's balances must net to zero across the whole ledger
+     * (double-entry) — this is what lets an admin "wallet health" view assert
+     * that invariant still holds rather than trusting it blindly.
+     */
+    @Query("select coalesce(sum(a.balanceMinor), 0) from Account a where a.kind = :kind")
+    long sumBalanceByKind(@Param("kind") AccountKind kind);
+
+    /** Merchants with money still in the settlement hold — what the settlement batch job iterates. */
+    List<Account> findByOwnerTypeAndKindAndBalanceMinorGreaterThan(
+            AccountOwnerType ownerType, AccountKind kind, long balanceMinor);
 }

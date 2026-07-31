@@ -28,6 +28,26 @@ public class ConsumerAuthDtos {
     ) {
     }
 
-    public record AuthResponse(String token, Long userId, String phone, String vpa, String displayName) {
+    public record AuthResponse(
+            String token, String refreshToken, Long userId, String phone, String vpa, String displayName,
+            boolean profileComplete
+    ) {
+    }
+
+    public record VpaSuggestion(String vpa, boolean available) {
+    }
+
+    public record VpaAvailabilityResponse(boolean available) {
+    }
+
+    public record CompleteProfileRequest(
+            @NotBlank @Pattern(regexp = ".{1,60}", message = "must be 1-60 characters") String displayName,
+            @NotBlank @Pattern(
+                    regexp = "[a-z0-9][a-z0-9.]{2,29}@flopay",
+                    message = "must be 3-30 lowercase letters, digits or dots, followed by @flopay"
+            ) String vpa,
+            /** Optional — redeemed once, at this same step, if present. */
+            String referralCode
+    ) {
     }
 }

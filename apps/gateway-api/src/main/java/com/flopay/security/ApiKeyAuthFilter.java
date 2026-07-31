@@ -51,7 +51,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                     Optional<ApiKey> apiKey = apiKeyRepository.findByKeyIdAndActiveTrue(keyId);
                     if (apiKey.isPresent() && passwordEncoder.matches(keySecret, apiKey.get().getKeySecretHash())) {
                         Long merchantId = apiKey.get().getMerchant().getId();
-                        var principal = new AuthenticatedPrincipal(merchantId, PrincipalType.MERCHANT);
+                        var principal = new AuthenticatedPrincipal(merchantId, PrincipalType.MERCHANT, null);
                         var auth = new UsernamePasswordAuthenticationToken(principal, null, List.of());
                         SecurityContextHolder.getContext().setAuthentication(auth);
                         // Stashed only for this request's lifetime, to compute payment signatures —

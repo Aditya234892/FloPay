@@ -3,6 +3,8 @@ package com.flopay.merchant;
 import com.flopay.merchant.dto.MerchantDtos.AuthResponse;
 import com.flopay.merchant.dto.MerchantDtos.LoginRequest;
 import com.flopay.merchant.dto.MerchantDtos.SignupRequest;
+import com.flopay.security.dto.RefreshTokenDtos.LogoutRequest;
+import com.flopay.security.dto.RefreshTokenDtos.RefreshRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,5 +26,15 @@ public class AuthController {
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
         return merchantService.login(request);
+    }
+
+    @PostMapping("/refresh")
+    public AuthResponse refresh(@Valid @RequestBody RefreshRequest request) {
+        return merchantService.refresh(request.refreshToken());
+    }
+
+    @PostMapping("/logout")
+    public void logout(@Valid @RequestBody LogoutRequest request) {
+        merchantService.logout(request.refreshToken());
     }
 }

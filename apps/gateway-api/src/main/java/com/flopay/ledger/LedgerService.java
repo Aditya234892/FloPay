@@ -2,6 +2,7 @@ package com.flopay.ledger;
 
 import com.flopay.common.ApiException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -140,5 +141,27 @@ public class LedgerService {
                 .currency(currency)
                 .balanceMinor(0L)
                 .build());
+    }
+
+    /**
+     * Like {@link #getAccount}, but opens the account on first use instead of
+     * throwing — for owners (merchants accepting their first wallet payment)
+     * that were never provisioned an account up front the way a new user's
+     * WALLET is at signup. Safe under a rare concurrent race: the unique
+     * constraint on (owner, kind, currency) rejects the loser, which simply
+     * re-reads the winner's row instead of failing.
+     */
+    @Transactional
+    public Account getOrOpenAccount(AccountOwnerType ownerType, Long ownerId, AccountKind kind, String currency) {
+        return accountRepository.findByOwnerTypeAndOwnerIdAndKindAndCurrency(ownerType, ownerId, kind, currency)
+                .orElseGet(() -> {
+                    try {
+                        return openAccount(ownerType, ownerId, kind, currency);
+                    } catch (DataIntegrityViolationException e) {
+                        return accountRepository
+                                .findByOwnerTypeAndOwnerIdAndKindAndCurrency(ownerType, ownerId, kind, currency)
+                                .orElseThrow(() -> e);
+                    }
+                });
     }
 }

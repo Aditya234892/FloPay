@@ -26,6 +26,18 @@ public final class SecurityUtils {
         return currentPrincipal(PrincipalType.USER).id();
     }
 
+    /**
+     * Rejects with 403 (not 401 — the caller is authenticated, just not
+     * privileged) unless the current merchant carries the ADMIN role claim.
+     */
+    public static Long requireAdminMerchant() {
+        AuthenticatedPrincipal principal = currentPrincipal(PrincipalType.MERCHANT);
+        if (!"ADMIN".equals(principal.role())) {
+            throw ApiException.forbidden("Admin access required");
+        }
+        return principal.id();
+    }
+
     private static AuthenticatedPrincipal currentPrincipal(PrincipalType required) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof AuthenticatedPrincipal principal)) {

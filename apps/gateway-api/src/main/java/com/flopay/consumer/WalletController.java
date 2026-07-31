@@ -1,15 +1,20 @@
 package com.flopay.consumer;
 
-import com.flopay.consumer.dto.WalletDtos.TopUpRequest;
 import com.flopay.consumer.dto.WalletDtos.TransactionResponse;
 import com.flopay.consumer.dto.WalletDtos.WalletResponse;
 import com.flopay.security.SecurityUtils;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * There is deliberately no instant self-serve top-up endpoint here — "Add
+ * money" goes through {@link com.flopay.topup.TopUpRequestController} and an
+ * admin has to approve it. {@link WalletService#topUp} still exists as the
+ * actual crediting mechanism, called from
+ * {@link com.flopay.topup.TopUpRequestService#approve}.
+ */
 @RestController
 @RequestMapping("/api/wallet")
 @RequiredArgsConstructor
@@ -25,11 +30,5 @@ public class WalletController {
     @GetMapping("/transactions")
     public List<TransactionResponse> getTransactions() {
         return walletService.getTransactions(SecurityUtils.currentUserId());
-    }
-
-    /** Sandbox only — see {@link WalletService#topUp}. */
-    @PostMapping("/topup")
-    public WalletResponse topUp(@Valid @RequestBody TopUpRequest request) {
-        return walletService.topUp(SecurityUtils.currentUserId(), request.amountMinor(), request.idempotencyKey());
     }
 }

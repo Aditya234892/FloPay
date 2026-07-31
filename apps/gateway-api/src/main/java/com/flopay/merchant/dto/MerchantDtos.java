@@ -24,9 +24,12 @@ public class MerchantDtos {
 
     public record AuthResponse(
             String token,
+            String refreshToken,
             Long merchantId,
             String name,
-            String email
+            String email,
+            String role,
+            String merchantVpa
     ) {
     }
 }

@@ -62,8 +62,17 @@ public class JwtService {
         }
     }
 
-    public String generateMerchantToken(Long merchantId, String email) {
-        return buildToken(merchantId, PrincipalType.MERCHANT, "email", email);
+    public String generateMerchantToken(Long merchantId, String email, String role) {
+        Date now = new Date();
+        return Jwts.builder()
+                .subject(merchantId.toString())
+                .claim("type", PrincipalType.MERCHANT.name())
+                .claim("email", email)
+                .claim("role", role)
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + expiryMillis))
+                .signWith(key)
+                .compact();
     }
 
     public String generateUserToken(Long userId, String phone) {
@@ -99,6 +108,7 @@ public class JwtService {
         if (typeClaim == null) {
             throw new IllegalArgumentException("Token has no principal type claim");
         }
-        return new AuthenticatedPrincipal(Long.parseLong(claims.getSubject()), PrincipalType.valueOf(typeClaim));
+        return new AuthenticatedPrincipal(
+                Long.parseLong(claims.getSubject()), PrincipalType.valueOf(typeClaim), claims.get("role", String.class));
     }
 }

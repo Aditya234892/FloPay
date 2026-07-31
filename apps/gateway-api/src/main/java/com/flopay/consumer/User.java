@@ -32,6 +32,28 @@ public class User {
 
     private String displayName;
 
+    /**
+     * False right after first OTP verify — the account exists (with a
+     * placeholder phone-digit VPA) so it can receive money immediately, but
+     * the consumer app forces a "choose your FloPay ID" step before Home
+     * until this flips true. Existing rows backfill true (see migration).
+     */
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean profileComplete = false;
+
+    /** BCrypt hash of a 6-digit app-lock PIN. Null means no PIN is configured — the app lock is opt-in. */
+    private String pinHash;
+
+    /** Admin-only kill switch — a frozen wallet can still receive money but can't send it. */
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean frozen = false;
+
+    /** Assigned at signup, alongside the placeholder VPA — shared to earn a referral bonus. */
+    @Column(nullable = false, unique = true, length = 16)
+    private String referralCode;
+
     @Builder.Default
     @Column(nullable = false)
     private Instant createdAt = Instant.now();

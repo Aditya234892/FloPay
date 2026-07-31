@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -37,6 +38,12 @@ public class PaymentRequestController {
     @GetMapping("/incoming")
     public List<PaymentRequestResponse> incoming() {
         return paymentRequestService.listIncoming(SecurityUtils.currentUserId());
+    }
+
+    /** Lightweight count for a home-screen badge — avoids fetching the full list just to show a number. */
+    @GetMapping("/incoming/pending-count")
+    public Map<String, Long> incomingPendingCount() {
+        return Map.of("count", paymentRequestService.countPendingIncoming(SecurityUtils.currentUserId()));
     }
 
     /** Requests the caller has sent to others. */

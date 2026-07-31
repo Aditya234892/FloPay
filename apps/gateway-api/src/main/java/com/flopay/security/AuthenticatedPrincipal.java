@@ -9,5 +9,6 @@ package com.flopay.security;
  * (or vice versa) is rejected there, not just by which routes each filter
  * happens to be wired to.
  */
-public record AuthenticatedPrincipal(Long id, PrincipalType type) {
+/** {@code role} is only meaningful for {@link PrincipalType#MERCHANT} — null for USER tokens. */
+public record AuthenticatedPrincipal(Long id, PrincipalType type, String role) {
 }

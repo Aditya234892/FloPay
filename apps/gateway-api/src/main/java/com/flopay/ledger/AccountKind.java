@@ -15,5 +15,7 @@ public enum AccountKind {
      */
     ISSUANCE,
     /** Platform revenue collected from transaction fees. */
-    FEES
+    FEES,
+    /** A user's cashback balance — minted from ISSUANCE the same way a top-up is, never spendable as wallet balance. */
+    REWARDS
 }

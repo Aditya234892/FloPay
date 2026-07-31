@@ -3,6 +3,8 @@ package com.flopay.request;
 import com.flopay.common.ApiException;
 import com.flopay.consumer.User;
 import com.flopay.consumer.UserRepository;
+import com.flopay.notification.NotificationService;
+import com.flopay.notification.NotificationType;
 import com.flopay.request.dto.PaymentRequestDtos.CreateSplitRequest;
 import com.flopay.request.dto.PaymentRequestDtos.PaymentRequestResponse;
 import com.flopay.request.dto.PaymentRequestDtos.SplitSummaryResponse;
@@ -26,6 +28,7 @@ public class PaymentRequestService {
     private final PaymentRequestRepository paymentRequestRepository;
     private final UserRepository userRepository;
     private final TransferService transferService;
+    private final NotificationService notificationService;
 
     @Transactional
     public PaymentRequestResponse create(Long requesterUserId, String fromVpa, long amountMinor, String note) {
@@ -42,6 +45,8 @@ public class PaymentRequestService {
                 .status(PaymentRequestStatus.PENDING)
                 .build());
 
+        notifyRequested(requesterUserId, payer.getId(), amountMinor);
+
         return toResponse(saved, requesterUserId);
     }
 
@@ -50,7 +55,8 @@ public class PaymentRequestService {
         // Deduplicate first: asking the same person twice for a share of one
         // bill is always a mistake, and it would silently shrink everyone
         // else's share since the split is computed from the payer count.
-        List<String> distinctVpas = request.payerVpas().stream().map(String::trim).distinct().toList();
+        List<String> distinctVpas = request.payerVpas().stream()
+                .map(vpa -> vpa.trim().toLowerCase()).distinct().toList();
 
         List<User> payers = new ArrayList<>();
         for (String vpa : distinctVpas) {
@@ -74,6 +80,7 @@ public class PaymentRequestService {
                     .status(PaymentRequestStatus.PENDING)
                     .splitGroupId(splitGroupId)
                     .build());
+            notifyRequested(requesterUserId, payers.get(i).getId(), shares.get(i));
             created.add(toResponse(saved, requesterUserId));
         }
 
@@ -142,7 +149,31 @@ public class PaymentRequestService {
 
         request.setStatus(target);
         paymentRequestRepository.save(request);
+
+        // Only DECLINED needs telling the other side — CANCELLED is the
+        // requester acting on their own request, nothing to notify themselves
+        // about.
+        if (target == PaymentRequestStatus.DECLINED) {
+            User payer = userRepository.findById(request.getPayerUserId()).orElse(null);
+            String payerLabel = payer != null && payer.getDisplayName() != null ? payer.getDisplayName() : "They";
+            notificationService.notify(
+                    request.getRequesterUserId(), NotificationType.REQUEST_DECLINED, "Request declined",
+                    payerLabel + " declined your request for " + formatRupees(request.getAmountMinor()));
+        }
+
         return toResponse(request, actingUserId);
+    }
+
+    private void notifyRequested(Long requesterUserId, Long payerId, long amountMinor) {
+        User requester = userRepository.findById(requesterUserId).orElse(null);
+        String requesterLabel = requester != null && requester.getDisplayName() != null ? requester.getDisplayName() : "Someone";
+        notificationService.notify(
+                payerId, NotificationType.REQUEST_RECEIVED, "Money requested",
+                requesterLabel + " requested " + formatRupees(amountMinor) + " from you");
+    }
+
+    private static String formatRupees(long amountMinor) {
+        return String.format("₹%,.2f", amountMinor / 100.0);
     }
 
     @Transactional(readOnly = true)
@@ -161,8 +192,9 @@ public class PaymentRequestService {
     }
 
     private User resolveVpa(String vpa) {
-        return userRepository.findByVpa(vpa.trim())
-                .orElseThrow(() -> ApiException.badRequest("No FloPay user with VPA " + vpa.trim()));
+        String normalized = vpa.trim().toLowerCase();
+        return userRepository.findByVpa(normalized)
+                .orElseThrow(() -> ApiException.badRequest("No FloPay user with VPA " + normalized));
     }
 
     /** Batches the counterparty lookups so a list of N requests costs one user query, not N. */

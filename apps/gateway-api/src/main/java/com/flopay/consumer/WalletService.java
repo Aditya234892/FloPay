@@ -39,21 +39,20 @@ public class WalletService {
 
     /**
      * Sandbox-only: mints demo money straight into the caller's wallet from the
-     * ISSUANCE account. This is the minimum needed to fund a wallet at all — not
-     * the full Add Money feature (real payment methods, limits, etc.), just
-     * enough for the rest of the wallet to be testable through the real UI
-     * instead of poking the database directly.
+     * ISSUANCE account. Called from {@link com.flopay.topup.TopUpRequestService#approve}
+     * once an admin approves a top-up request — there is no path that lets a
+     * user trigger this directly. Returns the journal entry so the caller can
+     * record it as the request's settlement, the same audit-trail pattern
+     * {@code PaymentRequest.settledEntryId} follows.
      */
     @Transactional
-    public WalletResponse topUp(Long userId, long amountMinor, String idempotencyKey) {
+    public JournalEntry topUp(Long userId, long amountMinor, String idempotencyKey) {
         Account issuance = ledgerService.getAccount(AccountOwnerType.SYSTEM, Account.SYSTEM_OWNER_ID, AccountKind.ISSUANCE, CURRENCY);
         Account wallet = ledgerService.getAccount(AccountOwnerType.USER, userId, AccountKind.WALLET, CURRENCY);
 
-        ledgerService.post(
+        return ledgerService.post(
                 idempotencyKey, "SANDBOX_TOPUP", null, "Demo top-up",
                 List.of(PostingLine.debit(issuance.getId(), amountMinor), PostingLine.credit(wallet.getId(), amountMinor)));
-
-        return getWallet(userId);
     }
 
     /**

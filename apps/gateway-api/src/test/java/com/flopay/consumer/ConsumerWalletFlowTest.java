@@ -105,7 +105,7 @@ class ConsumerWalletFlowTest {
 
         // A validly-signed token of the WRONG type -> 401, not "works because
         // it's a valid JWT". This is the actual proof the type-check works.
-        String merchantToken = jwtService.generateMerchantToken(999_999L, "cross-type-test@example.com");
+        String merchantToken = jwtService.generateMerchantToken(999_999L, "cross-type-test@example.com", "MERCHANT");
         mockMvc.perform(get("/api/wallet").header("Authorization", "Bearer " + merchantToken))
                 .andExpect(status().isUnauthorized());
 

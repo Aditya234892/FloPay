@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flopay.consumer.OtpChallengeRepository;
 import com.flopay.consumer.UserRepository;
+import com.flopay.consumer.WalletService;
 import com.flopay.ledger.Account;
 import com.flopay.ledger.AccountKind;
 import com.flopay.ledger.AccountOwnerType;
@@ -57,6 +58,8 @@ class TransferFlowTest {
     private PostingRepository postingRepository;
     @Autowired
     private JournalEntryRepository journalEntryRepository;
+    @Autowired
+    private WalletService walletService;
 
     private String phoneA;
     private String phoneB;
@@ -103,11 +106,13 @@ class TransferFlowTest {
         return new Onboarded(auth.get("token").asText(), auth.get("userId").asLong(), auth.get("vpa").asText());
     }
 
-    private void topUp(String token, long amountMinor) throws Exception {
-        mockMvc.perform(post("/api/wallet/topup").header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new TopUpBody(amountMinor, UUID.randomUUID().toString()))))
-                .andExpect(status().isOk());
+    /**
+     * There is no HTTP top-up endpoint anymore (Add Money now requires admin
+     * approval — see TopUpRequestController) — tests fund a wallet by calling
+     * the same crediting path the approval flow itself calls.
+     */
+    private void topUp(long userId, long amountMinor) {
+        walletService.topUp(userId, amountMinor, UUID.randomUUID().toString());
     }
 
     private long balanceOf(String token) throws Exception {
@@ -121,7 +126,7 @@ class TransferFlowTest {
     void transferMovesMoneyBetweenTwoRealWalletsWithCorrectCounterpartyInfo() throws Exception {
         Onboarded sender = onboard(phoneA);
         Onboarded receiver = onboard(phoneB);
-        topUp(sender.token(), 100_000);
+        topUp(sender.userId(), 100_000);
 
         String idempotencyKey = UUID.randomUUID().toString();
         String transferResponse = mockMvc.perform(post("/api/wallet/transfers")
@@ -162,7 +167,7 @@ class TransferFlowTest {
     @Test
     void cannotSendToOwnVpa() throws Exception {
         Onboarded self = onboard(phoneA);
-        topUp(self.token(), 50_000);
+        topUp(self.userId(), 50_000);
 
         mockMvc.perform(post("/api/wallet/transfers").header("Authorization", "Bearer " + self.token())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -174,7 +179,7 @@ class TransferFlowTest {
     @Test
     void rejectsTransferToUnknownVpa() throws Exception {
         Onboarded sender = onboard(phoneA);
-        topUp(sender.token(), 50_000);
+        topUp(sender.userId(), 50_000);
 
         mockMvc.perform(post("/api/wallet/transfers").header("Authorization", "Bearer " + sender.token())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -187,7 +192,7 @@ class TransferFlowTest {
     void rejectsTransferExceedingBalanceAndLeavesBothWalletsUnchanged() throws Exception {
         Onboarded sender = onboard(phoneA);
         Onboarded receiver = onboard(phoneB);
-        topUp(sender.token(), 5_000);
+        topUp(sender.userId(), 5_000);
 
         mockMvc.perform(post("/api/wallet/transfers").header("Authorization", "Bearer " + sender.token())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -203,9 +208,6 @@ class TransferFlowTest {
     }
 
     private record VerifyBody(String phone, String otp) {
-    }
-
-    private record TopUpBody(long amountMinor, String idempotencyKey) {
     }
 
     private record TransferBody(String toVpa, long amountMinor, String note, String idempotencyKey) {

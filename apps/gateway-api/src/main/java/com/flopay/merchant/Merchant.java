@@ -28,8 +28,17 @@ public class Merchant {
     @Column(nullable = false, unique = true)
     private String email;
 
+    /** How consumer wallet users pay this merchant — e.g. "coffeehouse4821@flopaybiz". Distinct domain from consumer VPAs so a client can tell the two apart without a lookup. */
+    @Column(nullable = false, unique = true, length = 64)
+    private String merchantVpa;
+
     @Column(nullable = false)
     private String passwordHash;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MerchantRole role = MerchantRole.MERCHANT;
 
     @Builder.Default
     @Column(nullable = false)
