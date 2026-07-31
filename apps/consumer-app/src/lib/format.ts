@@ -8,6 +8,10 @@ export function formatMoney(minorUnits: number, currency = 'INR'): string {
   }).format(minorUnits / 100)
 }
 
+export function formatDateTime(iso: string): string {
+  return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso))
+}
+
 export function formatRelative(iso: string, now = Date.now()): string {
   const seconds = (now - new Date(iso).getTime()) / 1000
   if (seconds < 10) return 'just now'

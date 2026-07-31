@@ -31,8 +31,8 @@ export function OtpScreen() {
     setError(null)
     setBusy(true)
     try {
-      await verifyOtp(phone, code)
-      navigate('/home', { replace: true })
+      const session = await verifyOtp(phone, code)
+      navigate(session.profileComplete ? '/home' : '/choose-vpa', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setOtp('')

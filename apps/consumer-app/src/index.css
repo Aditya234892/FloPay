@@ -11,15 +11,17 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  /* Primary/secondary anchor the brand ramp; -500 is the light/hover shade,
+     -600 the exact spec value used for solid fills and text-on-light. */
   --brand-500: #3b82f6;
   --brand-600: #2563eb;
-  --violet-500: #8b5cf6;
+  --secondary-500: #6366f1;
   --accent-500: #10b981;
   --accent-600: #059669;
-  --rose-500: #f43f5e;
+  --rose-500: #ef4444;
   --amber-500: #f59e0b;
 
-  --bg: #f5f6fa;
+  --bg: #f8fafc;
   --surface: #ffffff;
   --surface-raised: #ffffff;
   --line: rgb(15 23 42 / 0.08);
@@ -31,9 +33,9 @@
 }
 
 .dark {
-  --bg: #070b16;
-  --surface: #0e1526;
-  --surface-raised: #131b30;
+  --bg: #0f172a;
+  --surface: #131c30;
+  --surface-raised: #182338;
   --line: rgb(148 163 184 / 0.12);
   --fg: #f1f4fb;
   --fg-muted: #97a1b8;
@@ -45,7 +47,7 @@
 @theme inline {
   --color-brand-500: var(--brand-500);
   --color-brand-600: var(--brand-600);
-  --color-violet-500: var(--violet-500);
+  --color-secondary-500: var(--secondary-500);
   --color-accent-500: var(--accent-500);
   --color-accent-600: var(--accent-600);
   --color-rose-500: var(--rose-500);

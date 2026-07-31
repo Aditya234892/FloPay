@@ -1,17 +1,19 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Fingerprint } from 'lucide-react'
 import { Button } from '@/components/Button'
 import { useAuth } from '@/auth/AuthContext'
 import { FloMark } from '@/components/FloMark'
+import { isPasskeySupported } from '@/lib/webauthn'
 
 export function PhoneEntryScreen() {
-  const { requestOtp } = useAuth()
+  const { requestOtp, loginWithPasskey } = useAuth()
   const navigate = useNavigate()
   const [phone, setPhone] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [passkeyBusy, setPasskeyBusy] = useState(false)
 
   const digitsOnly = phone.replace(/\D/g, '')
   const isValid = digitsOnly.length === 10
@@ -28,6 +30,20 @@ export function PhoneEntryScreen() {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setBusy(false)
+    }
+  }
+
+  const handlePasskeyLogin = async () => {
+    if (!isValid) return
+    setError(null)
+    setPasskeyBusy(true)
+    try {
+      await loginWithPasskey(digitsOnly)
+      navigate('/home', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setPasskeyBusy(false)
     }
   }
 
@@ -74,6 +90,20 @@ export function PhoneEntryScreen() {
         <Button type="submit" className="mt-6" disabled={!isValid} loading={busy}>
           Continue
         </Button>
+
+        {isPasskeySupported() && (
+          <Button
+            type="button"
+            variant="ghost"
+            className="mt-2"
+            disabled={!isValid || busy}
+            loading={passkeyBusy}
+            onClick={() => void handlePasskeyLogin()}
+          >
+            {!passkeyBusy && <Fingerprint className="h-4 w-4" />}
+            Log in with passkey instead
+          </Button>
+        )}
 
         <p className="mt-4 text-center text-xs text-fg-subtle">
           Sandbox app — no real SMS is sent, no real money moves.
