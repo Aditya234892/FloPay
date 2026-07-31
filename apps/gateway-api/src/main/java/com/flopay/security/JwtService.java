@@ -62,23 +62,53 @@ public class JwtService {
         }
     }
 
-    public String generateToken(Long merchantId, String email) {
+    public String generateMerchantToken(Long merchantId, String email, String role) {
         Date now = new Date();
         return Jwts.builder()
                 .subject(merchantId.toString())
+                .claim("type", PrincipalType.MERCHANT.name())
                 .claim("email", email)
+                .claim("role", role)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expiryMillis))
                 .signWith(key)
                 .compact();
     }
 
-    public Long parseMerchantId(String token) {
+    public String generateUserToken(Long userId, String phone) {
+        return buildToken(userId, PrincipalType.USER, "phone", phone);
+    }
+
+    private String buildToken(Long id, PrincipalType type, String extraClaimName, String extraClaimValue) {
+        Date now = new Date();
+        return Jwts.builder()
+                .subject(id.toString())
+                .claim("type", type.name())
+                .claim(extraClaimName, extraClaimValue)
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + expiryMillis))
+                .signWith(key)
+                .compact();
+    }
+
+    /**
+     * @throws io.jsonwebtoken.JwtException on a malformed, expired, or badly
+     *         signed token; @throws IllegalArgumentException if a token was
+     *         validly signed by this service but predates the "type" claim
+     *         (should not happen outside local dev against old tokens).
+     */
+    public AuthenticatedPrincipal parsePrincipal(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(key)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-        return Long.parseLong(claims.getSubject());
+
+        String typeClaim = claims.get("type", String.class);
+        if (typeClaim == null) {
+            throw new IllegalArgumentException("Token has no principal type claim");
+        }
+        return new AuthenticatedPrincipal(
+                Long.parseLong(claims.getSubject()), PrincipalType.valueOf(typeClaim), claims.get("role", String.class));
     }
 }

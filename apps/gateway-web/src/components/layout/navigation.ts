@@ -1,4 +1,16 @@
-import { ArrowLeftRight, KeyRound, LayoutDashboard, Store, Webhook } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  KeyRound,
+  LayoutDashboard,
+  LifeBuoy,
+  ScrollText,
+  ShieldAlert,
+  ShieldCheck,
+  Store,
+  Users,
+  Wallet,
+  Webhook,
+} from 'lucide-react'
 import type { ComponentType } from 'react'
 import type { Role } from '@/features/auth/AuthContext'
 
@@ -28,6 +40,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
       { to: '/dashboard/transactions', label: 'Transactions', icon: ArrowLeftRight },
+      { to: '/dashboard/wallet-payments', label: 'Wallet payments', icon: Wallet },
     ],
   },
   {
@@ -35,6 +48,53 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { to: '/dashboard/keys', label: 'API keys', icon: KeyRound },
       { to: '/dashboard/webhooks', label: 'Webhooks', icon: Webhook },
+    ],
+  },
+  {
+    title: 'Admin',
+    items: [
+      {
+        to: '/dashboard/admin/topup-requests',
+        label: 'Top-up requests',
+        icon: ShieldCheck,
+        roles: ['admin'],
+      },
+      {
+        to: '/dashboard/admin/audit-logs',
+        label: 'System logs',
+        icon: ScrollText,
+        roles: ['admin'],
+      },
+      {
+        to: '/dashboard/admin/users',
+        label: 'Users',
+        icon: Users,
+        roles: ['admin'],
+      },
+      {
+        to: '/dashboard/admin/merchants',
+        label: 'Merchants',
+        icon: Store,
+        roles: ['admin'],
+      },
+      {
+        to: '/dashboard/admin/wallet-health',
+        label: 'Wallet health',
+        icon: ShieldCheck,
+        roles: ['admin'],
+      },
+      {
+        to: '/dashboard/admin/fraud-signals',
+        label: 'Fraud signals',
+        icon: ShieldAlert,
+        roles: ['admin'],
+      },
+      {
+        to: '/dashboard/admin/support-tickets',
+        label: 'Support tickets',
+        icon: LifeBuoy,
+        roles: ['admin'],
+      },
     ],
   },
 ]

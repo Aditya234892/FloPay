@@ -2,9 +2,15 @@
 #
 # The frontend is NOT here; it deploys to Vercel (see apps/gateway-web/vercel.json).
 #
-# After the first deploy you must set two values in the Render dashboard:
-#   FLOPAY_JWT_SECRET     generated for you below, but verify it exists
-#   FLOPAY_ALLOWED_ORIGINS  your Vercel URL — the API rejects unlisted origins
+# After the first deploy you must set these values in the Render dashboard:
+#   FLOPAY_JWT_SECRET       generated for you below, but verify it exists
+#   FLOPAY_ALLOWED_ORIGINS  your Vercel URLs (gateway-web AND consumer-app) —
+#                           the API rejects unlisted origins
+#   FLOPAY_WEBAUTHN_RP_ID   consumer-app's bare domain (no scheme/port), e.g.
+#                           flopay-wallet.vercel.app — passkey login is scoped
+#                           to this exact origin
+#   FLOPAY_WEBAUTHN_ORIGINS consumer-app's full origin(s), e.g.
+#                           https://flopay-wallet.vercel.app
 services:
   - type: web
     name: flopay-api
@@ -33,3 +39,16 @@ services:
 
       - key: FLOPAY_JWT_EXPIRY_MINUTES
         value: "120"
+
+      - key: FLOPAY_JWT_REFRESH_EXPIRY_DAYS
+        value: "30"
+
+      # Both required for passkey login to work in production — see the note
+      # above. Left unset, WebAuthn falls back to the "localhost" dev default
+      # and every real login attempt fails with an origin mismatch (OTP login
+      # is unaffected either way).
+      - key: FLOPAY_WEBAUTHN_RP_ID
+        sync: false
+
+      - key: FLOPAY_WEBAUTHN_ORIGINS
+        sync: false

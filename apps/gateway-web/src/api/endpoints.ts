@@ -1,17 +1,27 @@
 import type { AxiosInstance } from 'axios'
 import { dashboardApi } from './client'
 import type {
+  AdminMerchantResponse,
+  AdminTicketResponse,
+  AdminTopUpRequestResponse,
+  AdminUserResponse,
   ApiKeyCreatedResponse,
   ApiKeySummaryResponse,
+  AuditLogResponse,
   AuthResponse,
   CreateOrderRequest,
   CreatePaymentRequest,
   CreateRefundRequest,
+  FraudSignalResponse,
+  MerchantWalletPaymentResponse,
+  MerchantWalletSummaryResponse,
   OrderResponse,
   PaymentResponse,
   RefundResponse,
+  ResolveTicketRequest,
   VerifyPaymentRequest,
   VerifyPaymentResponse,
+  WalletHealthResponse,
   WebhookConfigResponse,
   WebhookLogResponse,
 } from './types'
@@ -27,6 +37,9 @@ export const authApi = {
 
   login: (body: { email: string; password: string }) =>
     dashboardApi.post<AuthResponse>('/api/auth/login', body).then((r) => r.data),
+
+  logout: (refreshToken: string) =>
+    dashboardApi.post<void>('/api/auth/logout', { refreshToken }).then((r) => r.data),
 }
 
 export const merchantApi = {
@@ -51,6 +64,65 @@ export const dashboardDataApi = {
     dashboardApi
       .post<RefundResponse>(`/api/dashboard/payments/${encodeURIComponent(paymentId)}/refund`, body)
       .then((r) => r.data),
+}
+
+/** Every method here requires the ADMIN role — the backend rejects a merchant token with 403. */
+export const adminApi = {
+  pendingTopUpRequests: () =>
+    dashboardApi
+      .get<AdminTopUpRequestResponse[]>('/api/dashboard/admin/topup-requests')
+      .then((r) => r.data),
+
+  approveTopUpRequest: (requestId: string) =>
+    dashboardApi
+      .post<AdminTopUpRequestResponse>(`/api/dashboard/admin/topup-requests/${requestId}/approve`)
+      .then((r) => r.data),
+
+  rejectTopUpRequest: (requestId: string) =>
+    dashboardApi
+      .post<AdminTopUpRequestResponse>(`/api/dashboard/admin/topup-requests/${requestId}/reject`)
+      .then((r) => r.data),
+
+  auditLogs: () =>
+    dashboardApi.get<AuditLogResponse[]>('/api/dashboard/admin/audit-logs').then((r) => r.data),
+
+  users: (q?: string) =>
+    dashboardApi
+      .get<AdminUserResponse[]>('/api/dashboard/admin/users', { params: q ? { q } : undefined })
+      .then((r) => r.data),
+
+  freezeUser: (userId: number) =>
+    dashboardApi.post<AdminUserResponse>(`/api/dashboard/admin/users/${userId}/freeze`).then((r) => r.data),
+
+  unfreezeUser: (userId: number) =>
+    dashboardApi.post<AdminUserResponse>(`/api/dashboard/admin/users/${userId}/unfreeze`).then((r) => r.data),
+
+  merchants: (q?: string) =>
+    dashboardApi
+      .get<AdminMerchantResponse[]>('/api/dashboard/admin/merchants', { params: q ? { q } : undefined })
+      .then((r) => r.data),
+
+  walletHealth: () =>
+    dashboardApi.get<WalletHealthResponse>('/api/dashboard/admin/wallet-health').then((r) => r.data),
+
+  fraudSignals: () =>
+    dashboardApi.get<FraudSignalResponse[]>('/api/dashboard/admin/fraud-signals').then((r) => r.data),
+
+  supportTickets: () =>
+    dashboardApi.get<AdminTicketResponse[]>('/api/dashboard/admin/support-tickets').then((r) => r.data),
+
+  resolveTicket: (ticketId: string, body: ResolveTicketRequest) =>
+    dashboardApi
+      .post<AdminTicketResponse>(`/api/dashboard/admin/support-tickets/${ticketId}/resolve`, body)
+      .then((r) => r.data),
+}
+
+export const walletPaymentsApi = {
+  list: () =>
+    dashboardApi.get<MerchantWalletPaymentResponse[]>('/api/dashboard/wallet-payments').then((r) => r.data),
+
+  summary: () =>
+    dashboardApi.get<MerchantWalletSummaryResponse>('/api/dashboard/wallet-payments/summary').then((r) => r.data),
 }
 
 export const webhookApi = {
