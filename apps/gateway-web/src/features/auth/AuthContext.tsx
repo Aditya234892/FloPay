@@ -10,6 +10,7 @@ import {
 import { authApi } from '@/api/endpoints'
 import {
   MERCHANT_STORAGE_KEY,
+  REFRESH_TOKEN_STORAGE_KEY,
   TOKEN_STORAGE_KEY,
   extractErrorMessage,
   setUnauthorizedHandler,
@@ -17,10 +18,10 @@ import {
 import type { AuthResponse } from '@/api/types'
 
 /**
- * Roles the UI can gate on. The backend does not issue these yet — it hands out
- * a single merchant-scoped token — so everyone resolves to `merchant` until the
- * claim exists. Encoded here so the gating components are ready and there is one
- * obvious place to wire the real claim into.
+ * Roles the UI can gate on. The backend issues `MERCHANT` or `ADMIN` in the
+ * JWT (see MerchantService — ADMIN is granted only via the
+ * flopay.admin.emails allowlist, never self-service). `developer` has no
+ * backend counterpart yet and never resolves from a real token.
  */
 export type Role = 'admin' | 'merchant' | 'developer'
 
@@ -29,6 +30,7 @@ export interface Merchant {
   name: string
   email: string
   role: Role
+  merchantVpa: string
 }
 
 interface AuthContextValue {
@@ -53,6 +55,7 @@ function loadStoredMerchant(): Merchant | null {
       name: parsed.name ?? parsed.email,
       email: parsed.email,
       role: parsed.role ?? 'merchant',
+      merchantVpa: parsed.merchantVpa ?? '',
     }
   } catch {
     // Corrupt storage shouldn't wedge the app on boot.
@@ -66,9 +69,11 @@ function persist(auth: AuthResponse): Merchant {
     merchantId: auth.merchantId,
     name: auth.name,
     email: auth.email,
-    role: 'merchant',
+    role: auth.role === 'ADMIN' ? 'admin' : 'merchant',
+    merchantVpa: auth.merchantVpa,
   }
   localStorage.setItem(TOKEN_STORAGE_KEY, auth.token)
+  localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, auth.refreshToken)
   localStorage.setItem(MERCHANT_STORAGE_KEY, JSON.stringify(merchant))
   return merchant
 }
@@ -77,7 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [merchant, setMerchant] = useState<Merchant | null>(loadStoredMerchant)
 
   const logout = useCallback(() => {
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY)
+    if (refreshToken) {
+      void authApi.logout(refreshToken).catch(() => {})
+    }
     localStorage.removeItem(TOKEN_STORAGE_KEY)
+    localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY)
     localStorage.removeItem(MERCHANT_STORAGE_KEY)
     setMerchant(null)
   }, [])
