@@ -8,6 +8,7 @@ import { favoritesApi, merchantPaymentApi, transferApi, walletDataApi } from '@/
 import { extractErrorMessage } from '@/api/client'
 import { formatMoney } from '@/lib/format'
 import { recentPeopleFrom } from '@/lib/recentPeople'
+import { randomId } from '@/lib/uuid'
 import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { useAuth } from '@/auth/AuthContext'
 import { cn } from '@/lib/utils'
@@ -70,7 +71,7 @@ export function SendMoneyScreen() {
   const [sent, setSent] = useState<SentResult | null>(null)
   const [step, setStep] = useState<Step>(scanned?.toVpa ? 'amount' : 'contact')
 
-  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID())
+  const [idempotencyKey, setIdempotencyKey] = useState(() => randomId())
 
   const recentPeople = useMemo(() => recentPeopleFrom(transactions.data ?? []), [transactions.data])
 
@@ -154,7 +155,7 @@ export function SendMoneyScreen() {
         }
       }
       setSent(result)
-      setIdempotencyKey(crypto.randomUUID())
+      setIdempotencyKey(randomId())
       setStep('success')
     } catch (err) {
       setError(extractErrorMessage(err))
