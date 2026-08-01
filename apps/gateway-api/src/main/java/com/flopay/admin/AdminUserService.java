@@ -36,10 +36,23 @@ public class AdminUserService {
     }
 
     private AdminUserResponse toResponse(User user) {
-        long balance = ledgerService.getAccount(AccountOwnerType.USER, user.getId(), AccountKind.WALLET, CURRENCY)
-                .getBalanceMinor();
         return new AdminUserResponse(
                 user.getId(), user.getPhone(), user.getVpa(), user.getDisplayName(), user.isProfileComplete(),
-                user.isFrozen(), balance, user.getCreatedAt());
+                user.isFrozen(), walletBalanceOrZero(user.getId()), user.getCreatedAt());
+    }
+
+    /**
+     * Every real signup opens a WALLET account in the same transaction (see
+     * ConsumerAuthService#verifyOtp), so this should always exist — but this
+     * is a search-results list, and one historical row missing its account
+     * (a race, or old test data) must not 404 the entire admin page for
+     * every other user too.
+     */
+    private long walletBalanceOrZero(Long userId) {
+        try {
+            return ledgerService.getAccount(AccountOwnerType.USER, userId, AccountKind.WALLET, CURRENCY).getBalanceMinor();
+        } catch (ApiException notFound) {
+            return 0L;
+        }
     }
 }
