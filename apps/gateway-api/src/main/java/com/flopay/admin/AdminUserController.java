@@ -23,13 +23,13 @@ public class AdminUserController {
 
     @PostMapping("/{userId}/freeze")
     public AdminUserResponse freeze(@PathVariable Long userId) {
-        SecurityUtils.requireAdminMerchant();
-        return adminUserService.setFrozen(userId, true);
+        Long adminId = SecurityUtils.requireAdminMerchant();
+        return adminUserService.setFrozen(adminId, userId, true);
     }
 
     @PostMapping("/{userId}/unfreeze")
     public AdminUserResponse unfreeze(@PathVariable Long userId) {
-        SecurityUtils.requireAdminMerchant();
-        return adminUserService.setFrozen(userId, false);
+        Long adminId = SecurityUtils.requireAdminMerchant();
+        return adminUserService.setFrozen(adminId, userId, false);
     }
 }
