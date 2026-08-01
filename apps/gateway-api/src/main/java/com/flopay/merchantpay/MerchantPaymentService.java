@@ -90,16 +90,25 @@ public class MerchantPaymentService {
                 .toList();
     }
 
+    /**
+     * Read-only, so it must never lazily open an account (that's a write —
+     * a merchant who has never been paid has no SETTLEMENT_PENDING/SETTLED
+     * row yet, and checking a balance shouldn't be what creates one).
+     */
     @Transactional(readOnly = true)
     public MerchantWalletSummaryResponse summary(Long merchantId) {
-        long pending = ledgerService
-                .getOrOpenAccount(AccountOwnerType.MERCHANT, merchantId, AccountKind.SETTLEMENT_PENDING, CURRENCY)
-                .getBalanceMinor();
-        long settled = ledgerService
-                .getOrOpenAccount(AccountOwnerType.MERCHANT, merchantId, AccountKind.SETTLED, CURRENCY)
-                .getBalanceMinor();
+        long pending = balanceOrZero(merchantId, AccountKind.SETTLEMENT_PENDING);
+        long settled = balanceOrZero(merchantId, AccountKind.SETTLED);
         List<MerchantWalletPayment> payments = merchantWalletPaymentRepository.findByMerchantIdOrderByCreatedAtDesc(merchantId);
         long total = payments.stream().mapToLong(MerchantWalletPayment::getAmountMinor).sum();
         return new MerchantWalletSummaryResponse(pending, settled, total, payments.size());
+    }
+
+    private long balanceOrZero(Long merchantId, AccountKind kind) {
+        try {
+            return ledgerService.getAccount(AccountOwnerType.MERCHANT, merchantId, kind, CURRENCY).getBalanceMinor();
+        } catch (ApiException notFound) {
+            return 0L;
+        }
     }
 }
