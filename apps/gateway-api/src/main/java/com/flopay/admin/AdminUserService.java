@@ -1,12 +1,15 @@
 package com.flopay.admin;
 
 import com.flopay.admin.dto.AdminUserDtos.AdminUserResponse;
+import com.flopay.audit.AuditLogService;
 import com.flopay.common.ApiException;
+import com.flopay.common.ClientIp;
 import com.flopay.consumer.User;
 import com.flopay.consumer.UserRepository;
 import com.flopay.ledger.AccountKind;
 import com.flopay.ledger.AccountOwnerType;
 import com.flopay.ledger.LedgerService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +24,8 @@ public class AdminUserService {
 
     private final UserRepository userRepository;
     private final LedgerService ledgerService;
+    private final AuditLogService auditLogService;
+    private final HttpServletRequest httpServletRequest;
 
     @Transactional(readOnly = true)
     public List<AdminUserResponse> search(String query) {
@@ -28,11 +33,15 @@ public class AdminUserService {
     }
 
     @Transactional
-    public AdminUserResponse setFrozen(Long userId, boolean frozen) {
+    public AdminUserResponse setFrozen(Long adminId, Long userId, boolean frozen) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> ApiException.notFound("User not found"));
         user.setFrozen(frozen);
-        return toResponse(userRepository.save(user));
+        AdminUserResponse response = toResponse(userRepository.save(user));
+        auditLogService.record(
+                "ADMIN", adminId, frozen ? "ADMIN_USER_FROZEN" : "ADMIN_USER_UNFROZEN",
+                "user=" + userId, ClientIp.of(httpServletRequest));
+        return response;
     }
 
     private AdminUserResponse toResponse(User user) {
